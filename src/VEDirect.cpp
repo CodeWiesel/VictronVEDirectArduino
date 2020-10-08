@@ -2,6 +2,7 @@
  VEDirect Arduino
 
  Copyright 2018, 2019, Brendan McLearie
+ Modified 2020 Jim Smith
  Distributed under MIT license - see LICENSE.txt
 
  See README.md
@@ -28,12 +29,12 @@ VEDirect::~VEDirect() {
 
 uint8_t VEDirect::begin() {
 	// Check connection the serial port
-	VESerial.begin(19200);
+	VESerial.begin(VED_BAUD_RATE);
 	if (VESerial) {
 		delay(500);
 		if(VESerial.available()) {
-			VESerial.flush();
-			VESerial.end();
+//			VESerial.flush();  //Actually only flushes the Tx buffer
+//			VESerial.end();  //Keep it ON after you have started it.
 			return 1;
 		}
 	}
@@ -46,6 +47,7 @@ int32_t VEDirect::read(uint8_t target) {
 	// Extract and return the corresponding value
 	// If value is "ON" return 1. If "OFF" return 0;
 
+	uint16_t empty = VED_MAX_READ_LOOPS;
 	uint16_t loops = VED_MAX_READ_LOOPS;
 	uint8_t lines = VED_MAX_READ_LINES;
 	int32_t ret = 0;					// The value to be returned
@@ -55,9 +57,10 @@ int32_t VEDirect::read(uint8_t target) {
 	char* value_str;
 	int8_t b;							// byte read from the stream
 
-	VESerial.begin(VED_BAUD_RATE);
+//	VESerial.begin(VED_BAUD_RATE);  //Should be already ON after starting it.
 
-	while (lines > 0) {
+	while ((lines > 0)&&(empty > 0)) {
+//Serial.print(lines);
 		if (VESerial.available()) {
 			while (loops > 0) {
 				b = VESerial.read();
@@ -105,6 +108,9 @@ int32_t VEDirect::read(uint8_t target) {
 				line[0] = '\0';
 				idx = 0;
 			}
+		}
+		else {
+			empty--; //When no serial received just try Max lines times
 		}
 	}
 	return ret;
